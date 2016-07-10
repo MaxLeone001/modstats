@@ -1,0 +1,30 @@
+body {
+	background-color: #169;
+}
+
+canvas {
+	margin-top: 5%;
+	background-color: #3D3D3D;
+	border: solid 2px #363636;
+}
+
+button {
+	background-color: #7398FF; 
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
+button#buttonScrollDataRight {
+	float: right;
+}
+
+button#buttonScrollDataLeft {
+	float: left;
+}
