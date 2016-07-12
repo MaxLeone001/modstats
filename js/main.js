@@ -2,6 +2,7 @@
 	VARS
 ===============================================================================================================================
 */
+// TO DO: Use moment.js and refactor
 
 // Constants
 const CANVAS = document.getElementById("can").getContext('2d');
@@ -61,15 +62,14 @@ function init() {
 		url: CURDATEROOT,
 		method: 'GET'
 	}).then(function(data) {
-			var tmp = new Date(data.date);
-			//console.log(data.date);
-			isLeapYear(tmp);
-			_curDate = getFormattedDate(tmp);
-			_curMonth = getCurMonth(tmp);
-
+			// TO DO: Use moment.js and refactor
+			_curDate = new Date(data.date);
+			isLeapYear(_curDate);
+			_curMonth = getCurMonth(_curDate);
+			var tmp = _curDate;
 			for(i = 0; i < 6; i++) {
-				tmp = getPrevDate(tmp,0);
-				var date = getFormattedDate(tmp)
+				
+				var date = getFormattedDate(tmp);
 				var result = searchData('date', date);
 				_prevDays.unshift(date);
 
@@ -80,19 +80,17 @@ function init() {
 					_dailySubmitData.unshift(0);
 					_dailyPublishData.unshift(0);
 				}
+				tmp = getPrevDate(tmp, getCurMonth(tmp));
 				
 			}
 			// Create Chart
 			createChart();
 
 		});
-		
-
-
-	
 }
 
 init();
+
 /* 
 	CHART BUILDER FUNCTIONS
 ===============================================================================================================================
@@ -141,8 +139,6 @@ function createChart() {
 	    ]
 	};
 
-	console.log(_data);
-
 	// Initialize Options
 	_options = {
 
@@ -162,11 +158,40 @@ function createChart() {
 */
 
 function scrollDataRight() {
+	var date = _curDate
 
+
+	for(i = 0; i < 5; i++) {
+		_prevDays[i] = _prevDays[i+1];
+	}
+	var date = getNextDate(_curDate,0);
+	_curDate = date;
+
+	date = getFormattedDate(date);
+	_prevDays[5] = date;
+	getData(_curDate);
+	_chart.data.datasets[0].data = _dailySubmitData;
+	_chart.data.datasets[1].data = _dailyPublishData;
+	_chart.update();
 }
 
 function scrollDataLeft() {
 
+	var lowDate = _curDate;
+
+	for(i = 5; i > 0; i--) {
+		_prevDays[i] = _prevDays[i-1];
+		lowDate = getPrevDate(lowDate);
+	}
+	lowDate = getPrevDate(lowDate);
+	_curDate = getPrevDate(_curDate);
+
+	lowDate = getFormattedDate(lowDate);
+	_prevDays[0] = lowDate;
+	getData(_curDate);
+	_chart.data.datasets[0].data = _dailySubmitData;
+	_chart.data.datasets[1].data = _dailyPublishData;
+	_chart.update();
 }
 
 /* 
@@ -174,6 +199,27 @@ function scrollDataLeft() {
 ===============================================================================================================================
 */
 
+
+
+function getData(date) {
+	_dailySubmitData = [];
+	_dailyPublishData = [];
+	var tmp = date;
+	for(i = 0; i < 6; i++) {
+		var date = getFormattedDate(tmp);
+		var result = searchData('date', date);
+		if(result[0] != null) {
+			_dailySubmitData.unshift(result[0].totalPhaseSubmit);
+			_dailyPublishData.unshift(result[0].totalPhasePublish);
+		} else {
+			_dailySubmitData.unshift(0);
+			_dailyPublishData.unshift(0);
+		}
+		tmp = getPrevDate(tmp,0);
+	}
+}
+
+// TO DO: Use moment.js and refactor
 function getFormattedDate(date) {
 	var year = date.getFullYear();
 	var month = (1 + date.getMonth()).toString();
@@ -183,62 +229,79 @@ function getFormattedDate(date) {
 	return month + '/' + day + '/' + year;
 }
 
-// 2nd param is the scale (e.g. 0 = get next day, 1 = get next month, 2 = get next year)
-function getNextDate(date, mode) {
+// TO DO: Use moment.js and refactor
+function getNextDate(date) {
 	var dateString;
-	if(mode === 0) {
-		if(getDaysLeft(date) > 0) {
-			var retString;
-			var year = date.getFullYear();
-			var month = (1 + date.getMonth()).toString();
-			month = month.length > 1 ? month : '0' + month;
-			var day = date.getDate();
-			day++;
-			day = day.toString();
-			day = day.length > 1 ? day : '0' + day;
-			dateString = month + '-' + day + '-' + year;
-			var tmp = new Date(dateString);
-			return tmp;
-		}
-		// Error no more days in this month
-		//console.log("Error: no more days in this month");
-		return;
-	}
-	// TO DO: Add Month mode
+	var retString;
+	var year = date.getFullYear();
+	var month = (1 + date.getMonth());
+	var day = date.getDate();
 
-	// Error invalid mode
-	//console.log("Error: invalid mode");
-	return;
+
+	day++;
+	if(getDaysLeft(date) < 1) {
+		month++;
+		day = 1;
+		if(month > 12) {
+			month = 1;
+			year++;
+		}
+	}
+	
+	
+	day = day.toString();
+	month = month.toString();
+	month = month.length > 1 ? month : '0' + month;
+	day = day.length > 1 ? day : '0' + day;
+	dateString = month + '-' + day + '-' + year;
+
+	// TO DO: Use moment.js
+	//var tmp = moment(dateString, "MM-DD-YYYY");
+	tmp = new Date(dateString);
+	return tmp;
 }
 
-function getPrevDate(date, mode) {
+// TO DO: Use moment.js and refactor
+function getPrevDate(date) {
 	var dateString;
-	if(mode === 0) {
-		if(getDaysLeft(date) < months.properties[_curMonth].days-1) {
-			var retString;
-			var year = date.getFullYear();
-			var month = (1 + date.getMonth()).toString();
-			month = month.length > 1 ? month : '0' + month;
-			var day = date.getDate();
-			day--;
-			day = day.toString();
-			day = day.length > 1 ? day : '0' + day;
-			dateString = month + '-' + day + '-' + year;
-			var tmp = new Date(dateString);
+	var retString;
+	var year = date.getFullYear();
+	var month = (1 + date.getMonth());
+	var day = date.getDate();
 
-			return tmp;
+
+	day--;
+	if(day < 1) {
+		
+		month--;
+		
+
+		if(month < 1) {
+			month = 12;
+			year--;
+			day = 31;
 		}
-		// Error no more days in this month
-		//console.log("Error: no more days in this month");
-		return;
+		else {
+			day = months.properties[month].days;
+		}
+		
 	}
-	// TO DO: Add Month mode
+	
+	
+	day = day.toString();
+	month = month.toString();
 
-	// Error invalid mode
-	//console.log("Error: invalid mode");
-	return;
+	month = month.length > 1 ? month : '0' + month;
+	day = day.length > 1 ? day : '0' + day;
+	dateString = month + '-' + day + '-' + year;
+	// TO DO: Use moment.js
+	//var tmp = moment(dateString, "MM-DD-YYYY");
+	tmp = new Date(dateString);
+	return tmp;
+	
 }
 
+// TO DO: Use moment.js and refactor
 function isLeapYear(date) {
 	var year = date.getFullYear();
 	if(year%4 === 0) {
@@ -256,9 +319,11 @@ function getDaysLeft(date) {
 }
 
 function getMonthDays() {
+	_isLeapYear ? (months.properties[months.FEB].days.value+1) : months.properties[months.FEB].days.days.value;
 	return months.properties[_curMonth].days;
 }
 
+// TO DO: Use moment.js and refactor
 function getCurMonth(date) {
 	var ret;
 	var month = 1 + date.getMonth();
@@ -267,7 +332,7 @@ function getCurMonth(date) {
         ret = months.JAN;
         break;
     case 2:
-    	ret = _isLeapYear ? (months.FEB.days.value+1) : months.FEB.days.value;
+    	ret = months.FEB;
         break;
     case 3:
         ret = months.MAR;
@@ -283,6 +348,112 @@ function getCurMonth(date) {
         break;
     case 7:
         ret = months.JUL;
+        break;
+    case 8:
+        ret = months.AUG;
+        break;
+	case 9:
+        ret = months.SEP;
+        break;
+    case 10:
+        ret = months.OCT;
+        break;
+    case 11:
+        ret = months.NOV;
+        break;
+    case 12:
+        ret = months.NOV;
+        break;
+	}
+	return ret;
+}
+
+// TO DO: Use moment.js and refactor
+function getPrevMonth(date) {
+	var ret;
+	var month = 1 + date.getMonth();
+	switch (month) {
+    case 1:
+        ret = months.DEC;
+        break;
+    case 2:
+    	ret = months.JAN;
+        break;
+    case 3:
+    	ret = months.FEB;
+        break;
+    case 4:
+        ret = months.MAR;
+        break;
+    case 5:
+        ret = months.APR;
+        break;  
+    case 6:
+        ret = months.MAY;
+        break;
+    case 7:
+        ret = months.JUN;
+        break;
+    case 8:
+        ret = months.JUL;
+        break;
+    case 9:
+        ret = months.AUG;
+        break;
+	case 10:
+        ret = months.SEP;
+        break;
+    case 11:
+        ret = months.OCT;
+        break;
+    case 12:
+        ret = months.NOV;
+        break;
+	}
+	//console.log(ret);
+	return ret;
+}
+
+// TO DO: Use moment.js and refactor
+function getNextMonth(date) {
+	var ret;
+	var month = 1 + date.getMonth();
+	switch (month) {
+    case 1:
+        ret = months.FEB;
+        break;
+    case 2:
+    	ret = months.MAR;
+        break;
+    case 3:
+        ret = months.APR;
+        break;
+    case 4:
+        ret = months.MAY;
+        break;
+    case 5:
+        ret = months.JUNE;
+        break;
+    case 6:
+        ret = months.JULY;
+        break;
+    case 7:
+        ret = months.AUG;
+        break;
+    case 8:
+        ret = months.SEP;
+        break;
+	case 9:
+        ret = months.OCT;
+        break;
+    case 10:
+        ret = months.NOV;
+        break;
+    case 11:
+        ret = months.DEC;
+        break;
+    case 12:
+        ret = months.JAN;
         break;
 	}
 	//console.log(ret);
@@ -300,6 +471,7 @@ function sortData(prop, asc) {
 	// TO DO: Add sort by publishCount and sort by submitCount
 }
 
+// TO DO: Use moment.js and refactor
 function sortDatesAsc(a, b) {
     return new Date(a.date).getTime() - new Date(b.date).getTime();
 }
